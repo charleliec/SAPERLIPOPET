@@ -1,0 +1,140 @@
+# Based on rocker - https://github.com/rocker-org/rocker-versioned
+FROM rocker/rstudio:4.4
+
+MAINTAINER Escaliere Bertrand (escaliere@ciml.univ-mrs.fr)
+
+
+# ##############################
+# R packages system dependencies
+# ##############################
+
+RUN apt-get update && apt-get install -y optipng \
+                                         pandoc \
+                                         libpng-dev \
+                                         zlib1g-dev \
+                                         libssl-dev \
+                                         libcurl4-openssl-dev \
+                                         libglpk-dev
+
+# ####################################
+# INSTALLING R PACKAGES FOR PROJECT
+# ####################################
+
+RUN apt-get update && apt-get install -y libxml2-dev libhdf5-serial-dev libudunits2-dev 
+RUN  apt-get update \ 
+  && export DEBIAN_FRONTEND=noninteractive \
+## && apt-get -y install xorg openbox
+  && apt-get -y install libx11-dev  libpng-dev gsl-bin libgsl0-dev libgdal-dev libgeos-dev libproj-dev libfontconfig1-dev
+
+
+####R packages###################"
+##CRAN#########################################################################
+
+RUN R -e 'install.packages( "knitr")'
+RUN R -e 'install.packages( "ade4")'
+RUN R -e 'install.packages( "ggplot2")'
+RUN R -e 'install.packages( "magrittr")'
+RUN R -e 'install.packages( "dplyr")'
+RUN R -e 'install.packages( "Rtsne")'
+RUN R -e 'install.packages( "ggrepel")'
+RUN R -e 'install.packages( "Rcpp")'
+RUN R -e 'install.packages( "rprojroot")'
+RUN R -e 'install.packages( "rmarkdown")'
+RUN R -e 'install.packages( "htmltools")'
+RUN R -e 'install.packages( "reshape")'
+RUN R -e 'install.packages( "gridExtra")'
+RUN R -e 'install.packages( "openxlsx")'
+RUN R -e 'install.packages( "corrplot")'
+RUN R -e 'install.packages( "reticulate")'
+RUN R -e 'install.packages( "feather")'
+RUN R -e 'install.packages( "devtools")'
+
+RUN R -e 'install.packages( "Seurat")'
+
+RUN R -e 'install.packages( "ggthemes")'
+RUN R -e 'install.packages( "sctransform")'
+RUN R -e 'install.packages( "BiocManager")'
+RUN R -e 'install.packages("DDRTree")'
+RUN R -e 'install.packages("pheatmap")'
+RUN R -e 'install.packages("DT")'
+RUN R -e 'install.packages("funr")'
+RUN R -e 'install.packages("limma")'
+RUN R -e 'install.packages("ggdist")'
+RUN R -e 'install.packages("R.utils")'
+RUN R -e 'install.packages("imager")'
+RUN R -e 'install.packages(c("Factoshiny","missMDA","FactoInvestigate"))'
+RUN R -e 'install.packages( "ggpubr")'
+
+###needed for visium
+RUN R -e 'BiocManager::install("STdeconvolve")'
+RUN R -e 'BiocManager::install("SpatialExperiment")'
+
+
+####bioconductor#########################################################################
+
+RUN R -e 'BiocManager::install()'
+RUN R -e 'library(BiocManager)'
+RUN R -e 'install.packages("BiocInstaller")'
+RUN R -e 'BiocManager::install("BiocInstaller")'
+RUN R -e 'BiocManager::install("ComplexHeatmap")'
+RUN R -e 'BiocManager::install("SingleCellExperiment")'
+RUN R -e 'BiocManager::install("ComplexHeatmap")'
+RUN R -e 'BiocManager::install("batchelor")'
+RUN R -e 'BiocManager::install("celldex")'
+RUN R -e 'BiocManager::install("SingleR")'
+RUN R -e 'BiocManager::install("scMerge")'
+RUN R -e 'BiocManager::install("batchelor")'
+
+###needed for gene ontology
+
+RUN R -e 'BiocManager::install("biomaRt")'
+RUN R -e 'BiocManager::install("GOstats")'
+RUN R -e 'BiocManager::install("GO.db")'
+RUN R -e 'BiocManager::install("org.Mm.eg.db")'
+RUN R -e 'BiocManager::install("clusterProfiler")'
+RUN R -e 'BiocManager::install("KEGG.db")'
+RUN R -e 'BiocManager::install("KEGGREST")'
+
+
+
+
+RUN R -e 'devtools::install_github("erocoar/gghalves")'
+RUN R -e 'remotes::install_github("satijalab/seurat-wrappers")'
+RUN R -e 'remotes::install_github("immunogenomics/harmony")'
+RUN R -e 'devtools::install_github("caleblareau/BuenColors")'
+
+
+
+
+RUN  apt-get install -y libmagick++-dev
+
+RUN R -e 'remotes::install_github("jbergenstrahle/STUtility")'
+RUN R -e 'install.packages("hdf5r")'
+RUN R -e 'remotes::install_github("https://github.com/MarcElosua/SPOTlight")'
+
+
+RUN R -e 'install.packages("anndata")'
+RUN R -e  'devtools::install_github("cellgeni/sceasy")'
+RUN R -e  'remotes::install_github("mojaveazure/seurat-disk")'
+RUN R -e  'BiocManager::install("BayesSpace")'
+
+RUN R -e 'remotes::install_github("immunogenomics/presto")'
+RUN R -e 'install.packages( "pander")'
+RUN R -e 'install.packages( "iheatmapr")'
+RUN R -e 'install.packages( "kableExtra")'
+RUN R -e 'install.packages( "hexbin")'
+RUN R -e 'install.packages( "babelgene")'
+RUN R -e 'BiocManager::install("org.Hs.eg.db")'
+RUN R -e  'BiocManager::install("scDblFinder")'
+
+RUN R -e 'install.packages( "symphony" )'
+RUN R -e 'install.packages( "scCustomize" )'
+RUN R -e 'install.packages( "caret" )'
+RUN R -e 'install.packages( "cvms" )'
+RUN R -e 'install.packages( "tidyverse" )'
+RUN R -e 'install.packages( "Matrix" ) '
+RUN R -e 'install.packages( "MatrixExtra" )'
+
+CMD ["/init"]
+
+

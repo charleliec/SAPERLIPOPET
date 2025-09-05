@@ -1,0 +1,345 @@
+---
+title: "Annotation pipeline"
+author: "Gapminder Analytics"
+format: 
+    dashboard:
+        self-contained: true
+        scrolling: true
+---
+
+```{python}
+#| tags: [parameters]
+
+ANNOTATIONS_FILE = ""
+LOG_FILE_PATH = ""
+REF_PATH = ""
+QUERY_PATH = ""
+
+```
+
+```{python}
+#| label: py-imports
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib.ticker import LogLocator, LogFormatterMathtext
+import os
+import re
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, balanced_accuracy_score,f1_score, classification_report
+
+from IPython.display import display, Markdown
+from tabulate import tabulate
+import logging
+from datetime import datetime
+
+# Needed for the import of scanpy
+date_time_launch = datetime.now().strftime("%d-%m-%Y_%Hh%Mmin%Ss")
+cache_dir = f"/tmp/cache_saperlipopet_qmd_{snakemake.params['ann_method']}_" + date_time_launch
+os.environ["NUMBA_CACHE_DIR"] = os.path.join(cache_dir, "numba_cache_")
+os.environ['MPLCONFIGDIR'] = os.path.join(cache_dir, 'mplconfig_cache')
+os.environ["PYTORCH_KERNEL_CACHE_PATH"] = os.path.join(cache_dir, "torch_cache")
+os.environ["FONTCONFIG_FILE"] = os.path.join(cache_dir, "fontconfig_cache")
+os.environ["XDG_CACHE_HOME"] = cache_dir
+for d in ["XDG_CACHE_HOME", "NUMBA_CACHE_DIR", "MPLCONFIGDIR", "PYTORCH_KERNEL_CACHE_PATH", "FONTCONFIG_FILE"]:
+    os.makedirs(os.environ[d], exist_ok=True)
+
+import sklearn
+import scipy as sp
+from scipy.sparse import csr_matrix
+import anndata
+from anndata import AnnData
+import scanpy as sc
+import scvi
+import mapqc
+
+import warnings
+warnings.filterwarnings("ignore")
+
+# LOG_FILE_PATH = '/mnt/DOSI/PLATEFORMES/BIOINFORMATIQUE/03_WORKSPACE/carer/labelTransferBenchmark/09_LabelTransfer_pipeline/logs/logfile_test.log'
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename=LOG_FILE_PATH, encoding='utf-8', level=logging.DEBUG)
+logger.debug('This message should go to the log file')
+
+#os.makedirs(CONF_MAT_DIR, exist_ok=True)
+# ANNOTATIONS_FILE = "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/09_LabelTransfer_pipeline/malmberg_data_ref=MetaNK_V2#MetaNK_V3_123int__all_models_predictions_and_mapQC_scores.csv"
+# LOG_FILE_PATH = "/mnt/DOSI/PLATEFORMES/BIOINFORMATIQUE/03_WORKSPACE/carer/labelTransferBenchmark/09_LabelTransfer_pipeline/logs/logfile_test.log"
+# REF_COUNTS = "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/MetaNK_V2#MetaNK_V3_123int/counts.mtx"
+# REF_METADATA = "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/MetaNK_V2#MetaNK_V3_123int/metadata.csv"
+# QUERY_COUNTS = "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/malmberg_data/counts.mtx"
+# QUERY_METADATA = "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/malmberg_data/metadata.csv"
+# UMAP_PATH = "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/malmberg_data/umap.csv"
+
+
+logger.debug("ANNOTATIONS_FILE = " + ANNOTATIONS_FILE)
+logger.debug("LOG_FILE_PATH = " + LOG_FILE_PATH)
+logger.debug("REF_PATH = " + REF_PATH)
+logger.debug("QUERY_PATH = " + QUERY_PATH)
+
+
+
+logger.debug(ANNOTATIONS_FILE)
+logger.debug(LOG_FILE_PATH)
+
+ref = anndata.io.read_h5ad(REF_PATH)
+query = anndata.io.read_h5ad(QUERY_PATH)
+query.obs = pd.read_csv(ANNOTATIONS_FILE, sep=",", index_col=[0])
+
+pd.options.display.max_columns = 10
+pd.options.display.max_colwidth = 500
+
+
+cell_types = query.obs["final_prediction"].unique()
+ident_types = query.obs["ident"].unique()
+logger.debug(cell_types)
+logger.debug(ident_types)
+# Create a dictionary mapping cell types to colors
+colors = ["#f464e6", "#004bbd", "#00bd00", "#d52d00", "#f8ae14", "#f2f864", "#9df3f1"]
+pred_types_colors = dict(zip(cell_types, colors[:len(cell_types)]))
+ident_types_colors = dict(zip(ident_types, colors[:len(ident_types)]))
+
+cell_type_colors = ident_types_colors | pred_types_colors
+logger.debug(cell_type_colors)
+
+binary_mapqc_colors = {
+    '<=2': '#4CAF50',  # green, slightly muted HUSL-style
+    '>2': '#FF3B30',  # reddish, soft HUSL vibe
+    'not sampled': '#B0B0B0',  # gray, not too flat
+    'filtered out': '#1C1C1C',  # black, slightly soft
+}
+
+true_false_colors = {
+    "True": "#4CAF50",
+    "False": "#FF3B30"
+}
+
+```
+
+# Overview {scrolling="true"}
+
+## Row
+```{python}
+#| title: Final predicted labels and true cell types
+sc.pl.umap(
+    query,
+    color=["final_prediction", "ident"],
+    title=["Predicted labels after metaclassification", "True cell types"],
+    size=10,
+    palette=cell_type_colors,
+    frameon=False
+)
+```
+
+## Row 
+### Column {width = "70%"}
+```{python}
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+import pandas as pd
+from sklearn.metrics import confusion_matrix
+
+
+y_true = query.obs["ident"]
+y_pred = query.obs["final_prediction"]
+
+# confusion matrix
+labels = sorted(set(query.obs["final_prediction"]).union(query.obs["ident"]))
+cm = confusion_matrix(y_true, y_pred, labels=labels)
+df = pd.DataFrame(cm, columns=labels, index=labels)
+
+# row/col normalization
+row_sums = cm.sum(axis=1, keepdims=True)
+col_sums = cm.sum(axis=0, keepdims=True)
+cm_perc_row = np.divide(cm, row_sums, where=row_sums!=0) * 100
+cm_perc_col = np.divide(cm, col_sums, where=col_sums!=0) * 100
+
+# annotations
+annot = np.empty_like(cm).astype(str)
+for i in range(cm.shape[0]):
+    for j in range(cm.shape[1]):
+        row_percent = cm_perc_row[i, j]
+        col_percent = cm_perc_col[i, j]
+        count = cm[i, j]
+        annot[i, j] = f"{row_percent:.1f}%\n({count})\n({col_percent:.1f}%)"
+
+# plot
+plt.figure(figsize=(8, 6))
+sns.heatmap(
+    cm_perc_row,
+    annot=annot,
+    fmt="",
+    cmap="RdYlGn",
+    cbar=True,
+    xticklabels=labels,
+    yticklabels=labels,
+    linewidths=0.5,
+    linecolor='gray',
+    annot_kws={"fontsize": 10, "va": "center", "ha": "center"}
+)
+
+plt.title("Confusion matrix of the final prediction", fontsize=14)
+plt.xlabel("Predicted cell types", fontsize=12)
+plt.ylabel("True cell types", fontsize=12)
+plt.tight_layout()
+plt.show()
+# plots conf mat
+```
+
+
+### Column 
+
+```{python}
+#| title: Summmary table
+
+summary = (
+    query.obs.groupby(["orig.ident", "ident"]).size()
+      .unstack(fill_value=0)
+)
+
+summary["Total"] = summary.sum(axis=1)
+summary.loc["Total"] = summary.sum()
+summary
+```
+
+## Row
+
+```{python}
+#| title: Models agreement on final prediction and cells correctly annotated or not
+
+display(Markdown("Proportion of models that predicted the final label and difference in votes between 1st and 2nd most predicted label"))
+query.obs["final_pred_correct"] = query.obs["final_prediction"].astype(str) == query.obs["ident"].astype(str)
+sc.pl.umap(
+    query,
+    color=["pred_label_proportion", "final_pred_correct"],
+    size=10,
+    color_map="RdYlGn",
+    palette=true_false_colors,
+    frameon=False
+)
+```
+
+## Row 
+```{python}
+#| title: Models agreement on final prediction and cells correctly annotated or not
+
+display(Markdown("Proportion of models that predicted the final label and difference in votes between 1st and 2nd most predicted label"))
+query.obs["final_pred_correct"] = query.obs["final_prediction"].astype(str) == query.obs["ident"].astype(str)
+sc.pl.umap(
+    query,
+    color=["proportion_difference", "final_pred_correct"],
+    size=10,
+    color_map="RdYlGn",
+    palette=true_false_colors,
+    frameon=False
+)
+```
+
+## Row
+
+```{python}
+#| title: MapQC results overview
+
+display(Markdown("Aggregated results of MapQC ran on the integrated latent spaces of the various scANVI models"))
+
+sc.pl.umap(
+    query,
+    color=["mapqc_median","mapqc_q3", "mapqc_max"],
+    size=15,
+    vmin = -1.01,
+    vmax = 3.5,
+    vcenter=1.,
+    color_map="RdYlGn_r",
+    frameon=False
+)
+
+sc.pl.umap(
+    query,
+    color=["binary_mapqc_median","binary_mapqc_q3", "binary_mapqc_max"],
+    size=15,
+    palette= binary_mapqc_colors,
+    frameon=False
+)
+
+
+sns.set_theme(rc={'figure.figsize':(20,8.8)}, palette=sns.color_palette("Paired"))
+#sns.boxplot(query.obs, x="final_prediction", y="mapqc_median", log_scale=True)
+ax = sns.boxplot(query.obs, x="final_prediction", y="mapqc_median", hue="orig.ident", log_scale=True)
+ax.set_yscale("log", base=2)  # matplotlib ≥ 3.3
+ax.yaxis.set_major_locator(LogLocator(base=2.0, subs=[1.0], numticks=30))
+ax.yaxis.set_major_formatter(LogFormatterMathtext(base=2.0))    
+plt.show()
+
+```
+
+
+# Models {scrolling="true"}
+
+Results of the models individually
+
+## Row 
+
+::: {.panel-tabset}
+```{python}
+#| output: asis
+
+models = [c.replace("predictions_", "") for c in query.obs.columns if c.startswith("predictions_")]
+
+for model in models:
+    display(Markdown(f"## {model}"))
+
+    sc.pl.umap(
+        query,
+        color=[f"predictions_{model}", "ident"],
+        title=f"Cell types prediction of {model}",
+        size=30,
+        palette=cell_type_colors,
+        frameon=False
+    )
+    display(Markdown(""))
+
+    sc.pl.umap(
+        query,
+        color=[f"binary_mapqc_score_{model}", "ident"],
+        title=f"Binary MapQC scores for the integration of {model}",
+        size=30,
+        palette= binary_mapqc_colors|cell_type_colors,
+        frameon=False
+    )
+    display(Markdown(""))
+    
+    sc.pl.umap(
+        query,
+        color=[f"mapqc_score_{model}", "ident"],
+        title=f"MapQC scores for the integration of {model}",
+        size=30,
+        vmin = -1.01,
+        vmax = 3.5,
+        vcenter=1.,
+        color_map="RdYlGn_r",
+        palette= cell_type_colors,
+        frameon=False
+    )
+    display(Markdown(""))
+
+    sns.set_theme(rc={'figure.figsize':(20,8.8)})
+    #sns.boxplot(query.obs, x="final_prediction", y="mapqc_score", log_scale=True)
+    ax = sns.boxplot(query.obs, x="final_prediction", y=f"mapqc_score_{model}", hue="orig.ident", log_scale=True, palette="Paired")
+    ax.set_yscale("log", base=2)  # matplotlib ≥ 3.3
+    ax.yaxis.set_major_locator(LogLocator(base=2.0, subs=[1.0], numticks=30))
+    ax.yaxis.set_major_formatter(LogFormatterMathtext(base=2.0))    
+    plt.show()
+    display(Markdown(""))
+
+    # sns.set_theme(rc={'figure.figsize':(20,8.8)})
+    # #sns.boxplot(query.obs, x="final_prediction", y="mapqc_score", log_scale=True)
+    # sns.boxplot(query.obs, x="final_prediction", y=f"mapqc_score_{model}", hue="orig.ident", log_scale=True)
+    # plt.show()
+    # display(Markdown(""))
+
+
+```
+
+:::

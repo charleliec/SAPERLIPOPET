@@ -1,0 +1,60 @@
+# # CONFIG file for the snakemake pipeline
+
+# reference_evaluation: False
+
+# # Path to the directory of the reference which must contain the following files : counts.mtx, genes_names.csv, metadata.csv OR have seurat_obj.rds with the necessary fields.
+# reference_path: "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/MetaNK_V2#MetaNK_V3_123int/seurat_obj.rds"
+
+# # Path to the directory of the query containing the cells that should be annotated. It must contain : counts.mtx, genes_names.csv, metadata.csv and umap.csv OR have seurat_obj.rds with the necessary fields.
+# query_path: "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/malmberg_data/pb_12_donors_processed.h5ad"
+
+# # Path to the output directory. The report and the annotation file will be added in it as well as a directory containing the intermediate files
+# output_dir: "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/SAPERLIPOPET/01_MetaNK_Malmberg"
+
+# # The following keys must be common to the reference and the query
+# batch_key: orig.ident   # Key of the column in the metadata that must be used by scANVI to integrate (often it corresponds to the patient or the sample)
+# study_key: orig.dataset   # Key of the column in the metadata that indicates the dataset / study the cells come from
+
+# # Name of the umap in the seurat_obj.rds. Used only if mtx and csv not generated manually. Used in the following way : seurat_obj@reductions[[umap_name]]@cell.embeddings
+# umap_name: umap
+
+
+# models_params:
+#   ref_unlabeled_num_epochs: [1]  # Usually something between 20 and 200. Doesn't seem to have a big impact...
+#   ref_labeled_num_epochs: [1,2]  # Usually between 10 and 40
+#   query_num_epochs: [1]  # Usually between 50 and 300
+#   prod: True # if set to True, the cartesian product of the num_epochs list is used to create the models. If False, they all must have the same length and zip() will be used.
+
+
+
+
+# CONFIG file for the snakemake pipeline
+
+reference_evaluation: False
+
+# Path to the directory of the reference which must contain the following files : counts.mtx, genes_names.csv, metadata.csv OR have seurat_obj.rds with the necessary fields.
+reference_path: "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/labelTransferBenchmark/00_References/MetaNK_V2#MetaNK_V3_123int/seurat_obj.rds"
+
+# Path to the directory of the query containing the cells that should be annotated. It must contain : counts.mtx, genes_names.csv, metadata.csv and umap.csv OR have seurat_obj.rds with the necessary fields.
+query_path: "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/GemXFlex_test/TBC_all_samples/05_Output/04_Merging_per_group/seurat_obj.rds"
+
+# Path to the output directory. The report and the annotation file will be added in it as well as a directory containing the intermediate files
+output_dir: "/mnt/DOSI/EVLAB/BIOINFO/BIOINFO_PROJECT/SAPERLIPOPET/02_TBC_metaNK_test"
+
+# The following keys must be common to the reference and the query
+batch_key: orig.ident   # Key of the column in the metadata that must be used by scANVI to integrate (often it corresponds to the patient or the sample)
+study_key: orig.dataset   # Key of the column in the metadata that indicates the dataset / study the cells come from
+
+# Name of the umap in the seurat_obj.rds. Used only if mtx and csv not generated manually. Used in the following way : seurat_obj@reductions[[umap_name]]@cell.embeddings
+umap_name: umap
+
+
+models_params:
+  ref_unlabeled_num_epochs: [1]  # Usually something between 20 and 200. Doesn't seem to have a big impact...
+  ref_labeled_num_epochs: [1,2]  # Usually between 10 and 40
+  query_num_epochs: [3,1]  # Usually between 50 and 300
+  prod: True # if set to True, the cartesian product of the num_epochs list is used to create the models. If False, they all must have the same length and zip() will be used.
+
+
+
+
