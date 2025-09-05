@@ -1,9 +1,11 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
       <title>README</title>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       
-      <link rel="stylesheet" href="file:////home/carer/.vscode/extensions/shd101wyy.markdown-preview-enhanced-0.8.19/crossnote/dependencies/katex/katex.min.css">
+      <link rel="stylesheet" href="README_files/katex.min.css">
       
       
       
@@ -25,11 +27,13 @@
       <div class="crossnote markdown-preview  ">
       
 <div style="display:flex;align-items:center;">
-  <img src="Saperlipopet_logo.png" alt="Logo" width="500">
-  <h3 style="margin: 10px 0px 0px 50px;">Subtype Annotation with Prior Evaluation of the Reference LImits and Potential Outlier Population ExTraction</h3> 
+  <img src="README_files/Saperlipopet_logo.png" alt="Logo" width="500">
+  <h3 style="margin: 10px 0px 0px 50px;">Subtype Annotation with Prior Evaluation of the Reference Limits and Potential Outlier Population ExTraction</h3> 
 </div>
 <br>
-<p>Pipeline originally developped to annotate the subtypes of NK cells. It is based on scANVI for the annotation and uses MapQC to detect new cell types that are not present in the original reference.</p>
+<p>Pipeline originally developped to annotate the subtypes of NK cells. 
+It is based on scANVI for the annotation and uses MapQC to detect new 
+cell types that are not present in the original reference.</p>
 <ul>
 <li><a href="#1-usage-of-the-pipeline">1. Usage of the pipeline</a>
 <ul>
@@ -58,8 +62,11 @@ source ~/.snakemake/bin/activate
 pip install snakemake
 pip install pulp==2.7.0
 </code></pre><p>Then run the following :</p>
-<pre data-role="codeBlock" data-info="console" class="language-console console"><code>snakemake --snakefile Snakefile --verbose --use-singularity --singularity-args="-B /mnt/DOSI:/mnt/DOSI -B $(pwd)/.cache:/home/jovyan/.cache --nv" --cores 5
-</code></pre><p>Depending on your GPU capacity, you can adjust the number of cores. Usually, to run 4 models, it should take around 2 to 3h. Make sure that it is running on the GPU, otherwise it could take much longer (at least 10 times longer).</p>
+<pre data-role="codeBlock" data-info="console" class="language-console console"><code>snakemake --snakefile Snakefile --verbose --use-singularity --singularity-args="-B /mnt/DOSI:/mnt/DOSI --nv" --cores 5
+</code></pre><p>Depending on your GPU capacity, you can adjust the 
+number of cores. Usually, to run 4 models, it should take around 2 to 
+3h. Make sure that it is running on the GPU, otherwise it could take 
+much longer (at least 10 times longer).</p>
 <p>To create the containers you can first build the two Docker containers which Dockerfiles are in <code>SAPERLIPOPET/01_Containers/</code> and then create the Singularity image from the Docker images using :</p>
 <pre data-role="codeBlock" data-info="console" class="language-console console"><code>docker run -v /var/run/docker.sock:/var/run/docker.sock \
 -v /tmp/test:/output \
@@ -77,19 +84,33 @@ myDockerImageID
 <h4 id="121-configuration-file">1.2.1. Configuration file </h4>
 <p>The <code>01_CONFIG.yaml</code> file must have the following fields :</p>
 <ul>
-<li><strong><code>reference_evaluation</code></strong> : whether the file to annotate, the query, is labeled. If it is, the labels will be used to compare with the annotation of the pipeline.</li>
+<li><strong><code>reference_evaluation</code></strong> : whether the 
+file to annotate, the query, is labeled. If it is, the labels will be 
+used to compare with the annotation of the pipeline.</li>
 <li><strong><code>reference_path</code></strong> : path to the <code>.rds</code> or <code>.h5ad</code> file containing respectively a <em>Seurat</em> object or an <em>Anndata</em> object for the reference.</li>
 <li><strong><code>query_path</code></strong> : path to the <code>.rds</code> or <code>.h5ad</code> file containing respectively a <em>Seurat</em> object or an <em>Anndata</em> object for the reference.</li>
 <li><strong><code>output_dir</code></strong> : path to the directory where the output files will be stored</li>
-<li><strong><code>batch_key</code></strong> : name of the column in the metadata containing the samples/patient information. It is what will be used by scANVI to integrate. The pipeline runs on <strong>raw counts</strong>, so any prior integration will be discarded. Normally, there are several samples per dataset / study.</li>
-<li><strong><code>study_key</code></strong> : name of the column in metadata containing the information about the dataset / study the cell belongs to. It should have a unique value in the query.<br>
+<li><strong><code>batch_key</code></strong> : name of the column in the 
+metadata containing the samples/patient information. It is what will be 
+used by scANVI to integrate. The pipeline runs on <strong>raw counts</strong>, so any prior integration will be discarded. Normally, there are several samples per dataset / study.</li>
+<li><strong><code>study_key</code></strong> : name of the column in 
+metadata containing the information about the dataset / study the cell 
+belongs to. It should have a unique value in the query.<br>
 =&gt; Both the <code>study_key</code> and the <code>batch_key</code> have to be the <strong>same in the query and in the reference</strong>.</li>
 <li><strong><code>umap_name</code></strong> : name of the umap reduction in the <code>seurat_obj.rds</code>. It will be used in the following way : <code>seurat_obj@reductions[[umap_name]]@cell.embeddings</code>. If providing directly the <code>counts, metadata,...</code> set to any value (e.g. <code>False</code>).</li>
 <li><strong><code>models_params</code></strong> : sets the number of models as well as their training parameters :
 <ul>
-<li><strong><code>ref_unlabeled_num_epochs</code></strong> : list with number of training epochs of the scVI model on the reference (thus without using the labels). This parameter doesn't seem to have much impact, between 20 and 200 seems like a good number. Please note that increasing the number of epochs will increase the computing time.</li>
-<li><strong><code>ref_labeled_num_epochs</code></strong> : list with number of training epochs of the scANVI model on the reference (using the labels). Usually numbers between 10 and 40 give good results</li>
-<li><strong><code>query_num_epochs</code></strong> : list with number of training epochs of the scANVI model on both the reference and the query. Usually numbers between 50 and 300 give good results</li>
+<li><strong><code>ref_unlabeled_num_epochs</code></strong> : list with 
+number of training epochs of the scVI model on the reference (thus 
+without using the labels). This parameter doesn't seem to have much 
+impact, between 20 and 200 seems like a good number. Please note that 
+increasing the number of epochs will increase the computing time.</li>
+<li><strong><code>ref_labeled_num_epochs</code></strong> : list with 
+number of training epochs of the scANVI model on the reference (using 
+the labels). Usually numbers between 10 and 40 give good results</li>
+<li><strong><code>query_num_epochs</code></strong> : list with number of
+ training epochs of the scANVI model on both the reference and the 
+query. Usually numbers between 50 and 300 give good results</li>
 <li><strong><code>prod</code></strong> : if set to True, the cartesian product of the <code>..._num_epochs</code> lists is used to create the models. If False, they all must have the same length and zip() will be used.<br>
 =&gt; The number of models trained is determined by the values in the lists as well as the value of <code>prod</code>. When <code>prod</code> is <code>True</code>, there will be <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="monospace">len(ref_unlabeled_num_epochs)</mtext><mo>×</mo><mtext mathvariant="monospace">len(ref_labeled_num_epochs)</mtext><mo>×</mo><mtext mathvariant="monospace">len(query_num_epochs)</mtext></mrow><annotation encoding="application/x-tex">\texttt{len(ref\_unlabeled\_num\_epochs)} \times \texttt{len(ref\_labeled\_num\_epochs)} \times \texttt{len(query\_num\_epochs)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">len(ref_unlabeled_num_epochs)</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">len(ref_labeled_num_epochs)</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">len(query_num_epochs)</span></span></span></span></span> different models. Otherwise, there will only be <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="monospace">len(ref_unlabeled_num_epochs)</mtext><mo>=</mo><mtext mathvariant="monospace">len(ref_labeled_num_epochs)</mtext><mo>=</mo><mtext mathvariant="monospace">len(query_num_epochs)</mtext></mrow><annotation encoding="application/x-tex">\texttt{len(ref\_unlabeled\_num\_epochs)} = \texttt{len(ref\_labeled\_num\_epochs)} = \texttt{len(query\_num\_epochs)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">len(ref_unlabeled_num_epochs)</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">len(ref_labeled_num_epochs)</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">len(query_num_epochs)</span></span></span></span></span> models.</li>
 </ul>
@@ -103,7 +124,9 @@ myDockerImageID
 <li>The <code>meta.data</code> must contain a column named <code>ident</code> containing the true cell identity in the reference (and when evaluating the reference in the query as well).</li>
 <li>The <code>meta.data</code> must contain the columns whose names are defined in <code>batch_key</code> and <code>study_key</code>. The name in the query should be <strong>identical to that in the reference</strong>.</li>
 <li>The UMAP reduction defined in the config file must exist at the following location : <code>seurat_obj@reductions[[</code><em><code>umap_name</code></em><code>]]@cell.embeddings</code>.</li>
-<li>The gene names nomenclature has to match between the query and the reference. It is however not required that the same genes are present in the query and in the reference.</li>
+<li>The gene names nomenclature has to match between the query and the 
+reference. It is however not required that the same genes are present in
+ the query and in the reference.</li>
 </ul>
 <p>If you provide a <code>.h5ad</code> file, it must meet the following requirements :</p>
 <ul>
@@ -111,12 +134,18 @@ myDockerImageID
 <li>The <code>obs</code> DataFrame must contain a column named <code>ident</code> containing the true cell identity in the reference (and when evaluating the reference in the query as well).</li>
 <li>The <code>obs</code> must contain the columns whose names are defined in <code>batch_key</code> and <code>study_key</code>. The name in the query should be <strong>identical to that in the reference</strong>.</li>
 <li>The UMAP reduction defined in the config file must exist at the following location : <code>adata.obsm["umap"]</code>. For now, using <code>.h5ad</code> as input, it is not possible to select the name of the UMAP. Set the value of <code>umap_name</code> to some default value like <code>"random_text"</code>.</li>
-<li>The gene names nomenclature (set in <code>adata.var_names</code>) has to match between the query and the reference. It is however not required that the same genes are present in the query and in the reference.</li>
+<li>The gene names nomenclature (set in <code>adata.var_names</code>) 
+has to match between the query and the reference. It is however not 
+required that the same genes are present in the query and in the 
+reference.</li>
 </ul>
 <h3 id="13-potential-errors-or-problems">1.3. Potential errors or problems </h3>
 <ul>
-<li>If scANVI takes an unreasonable amount of time to be imported ( &gt;10 min), restart the computing cluster, it should solve the issue.</li>
-<li>If after running the pipeline, you realize that MapQC is not very useful because an important number of cells is grey (not sampled), consider increasing the <code>n_nhoods</code> parameter in  <code>02_Ann_methods/04_mapQC_evaluation.py</code>.</li>
+<li>If scANVI takes an unreasonable amount of time to be imported ( 
+&gt;10 min), restart the computing cluster, it should solve the issue.</li>
+<li>If after running the pipeline, you realize that MapQC is not very 
+useful because an important number of cells is grey (not sampled), 
+consider increasing the <code>n_nhoods</code> parameter in  <code>02_Ann_methods/04_mapQC_evaluation.py</code>.</li>
 </ul>
 <h3 id="14-outputs">1.4. Outputs </h3>
 <p>The annotations will be saved in <code>..._all_models_predictions_and_mapQC_scores.csv</code> where <code>...</code> corresponds to the name of the reference and that of the query.<br>
@@ -124,42 +153,99 @@ A summary of the results, including UMAPs of the prediction, of the MapQC scores
 Finally, a folder named <em><code>{QUERY_NAME}</code></em><code>_ref=</code><em><code>{REF_NAME}</code></em><code>_intermediate_outputs</code> containing the different files generated during the pipeline.</p>
 <h2 id="2-advices-on-best-use-and-limits">2. Advices on best use and limits </h2>
 <p>The transfer of the labels between the reference and the query, depends mainly on the qulity of the reference.<br>
-It appears that the pipeline is not capable of transfering labels to new organs, chemistry or sequencing technique. For instance, it won't be possible to annotate lung cells with only PBMC cells in the reference, or to annotate cells sequenced with V3 chemistry if in the reference all cells were sequenced with V2 or worse to annotate cells with singleNucleus data with a reference only made of singleCell data.</p>
-<p>However, if your reference is made of PBMC cells sequenced with V2 chemistry as well as lung cells sequenced with V3 chemistry, you <em>should</em> be able to annotate lung cells with V2 chemistry or PBMC cells with V3 chemistry.<br>
-It is also advised when annotating large datasets that you manually annotate at least one sample so as to evaluate the quality of your reference. This will give you an estimate of the quality of the annotation for the other samples. If the results are not satisfactory, it is advised to annotate manually a second sample, to add it to the reference and to evaluate once again the quality of the reference. Usually, if the original reference is comprised of enough cells, around 1000 cells in the new context should suffice to achieve good annotation performance.</p>
-<p>Sometimes, it appears that adding unlabeled cells to the reference can increase performance. This might be due to the fact that it densifies the number of points in the latent space and allows for better clustering. However, it has proven not to be always the case, and some small performance degradation have been observed.</p>
+It appears that the pipeline is not capable of transfering labels to new
+ organs, chemistry or sequencing technique. For instance, it won't be 
+possible to annotate lung cells with only PBMC cells in the reference, 
+or to annotate cells sequenced with V3 chemistry if in the reference all
+ cells were sequenced with V2 or worse to annotate cells with 
+singleNucleus data with a reference only made of singleCell data.</p>
+<p>However, if your reference is made of PBMC cells sequenced with V2 
+chemistry as well as lung cells sequenced with V3 chemistry, you <em>should</em> be able to annotate lung cells with V2 chemistry or PBMC cells with V3 chemistry.<br>
+It is also advised when annotating large datasets that you manually 
+annotate at least one sample so as to evaluate the quality of your 
+reference. This will give you an estimate of the quality of the 
+annotation for the other samples. If the results are not satisfactory, 
+it is advised to annotate manually a second sample, to add it to the 
+reference and to evaluate once again the quality of the reference. 
+Usually, if the original reference is comprised of enough cells, around 
+1000 cells in the new context should suffice to achieve good annotation 
+performance.</p>
+<p>Sometimes, it appears that adding unlabeled cells to the reference 
+can increase performance. This might be due to the fact that it 
+densifies the number of points in the latent space and allows for better
+ clustering. However, it has proven not to be always the case, and some 
+small performance degradation have been observed.</p>
 <h2 id="3-results-interpretation">3. Results interpretation </h2>
-<p>In the HTML report, there are different indicators of the quality of the annotation as well as a detection of outlier population using MapQC.</p>
-<p>At the top, in the <strong>Overview</strong> tab, there is two figure showing how well the different models trained on the data agree with each other. If all the models agree with each other (score close to <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>), it is usually a sign of a reliable annotation. However, although unlikely, it could simply be that they are all biased in the same way and all make the same mistake.</p>
-<p>Underneath, you will find the aggregated results of MapQC. MapQC is a tool capable, given a query, a reference and a mapping between the two, to evaluate which cells in the query are outliers (cell population not present in the reference). Here the mapping used is the latent space of the <em>scANVI</em> model, therefore, MapQC is run as many times as there are models.  For a cell, a MapQC score below <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">2</span></span></span></span> is a sign that the cell type belongs to those present in the reference. Conversely, a score above <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">2</span></span></span></span> indicates either a poor integration (therefor a poor model) or a new cell type that was not present in the reference. Cells can also be marked as <em>Not sampled</em> or <em>Filtered out</em> this will be explained in more details in the section dedicated to MapQC.</p>
+<p>In the HTML report, there are different indicators of the quality of 
+the annotation as well as a detection of outlier population using MapQC.</p>
+<p>At the top, in the <strong>Overview</strong> tab, there is two figure
+ showing how well the different models trained on the data agree with 
+each other. If all the models agree with each other (score close to <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn></mrow><annotation encoding="application/x-tex">1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>),
+ it is usually a sign of a reliable annotation. However, although 
+unlikely, it could simply be that they are all biased in the same way 
+and all make the same mistake.</p>
+<p>Underneath, you will find the aggregated results of MapQC. MapQC is a
+ tool capable, given a query, a reference and a mapping between the two,
+ to evaluate which cells in the query are outliers (cell population not 
+present in the reference). Here the mapping used is the latent space of 
+the <em>scANVI</em> model, therefore, MapQC is run as many times as there are models.  For a cell, a MapQC score below <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">2</span></span></span></span> is a sign that the cell type belongs to those present in the reference. Conversely, a score above <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn></mrow><annotation encoding="application/x-tex">2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">2</span></span></span></span>
+ indicates either a poor integration (therefor a poor model) or a new 
+cell type that was not present in the reference. Cells can also be 
+marked as <em>Not sampled</em> or <em>Filtered out</em> this will be explained in more details in the section dedicated to MapQC.</p>
 <p>On the <strong>Models</strong> tab, you will find the annotation given by each model as well their respective MapQC scores.</p>
 <p>In the <code>..._all_models_predictions_and_mapQC_scores.csv</code> file, you will find the following columns :</p>
 <ul>
 <li>One column <code>predictions_...</code> per model, giving the prediction of this model</li>
-<li>Similarly one column starting with <code>mapqc_score_...</code> or <code>binary_mapqc_score_...</code> per model. The binary MapQC score is useful in UMAPs to distinguish between outlier cells and non outliers as well as visualizing which cells were not sampled or filtered out.</li>
+<li>Similarly one column starting with <code>mapqc_score_...</code> or <code>binary_mapqc_score_...</code>
+ per model. The binary MapQC score is useful in UMAPs to distinguish 
+between outlier cells and non outliers as well as visualizing which 
+cells were not sampled or filtered out.</li>
 <li><code>final_prediction</code> giving the final prediction of the pipeline</li>
 <li><code>pred_label_proportion</code> giving the proportion of models that "voted" for the cell type having receiving the most votes</li>
-<li><code>proportion_difference</code> giving the difference in vote proportion between the first most voted type and the second most voted type (if you have 10 models, 5 that voted for cell type A, 2 that voted for cell type B and the rest all voted for other cell types, you would have a <code>proportion_difference</code> of <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>−</mo><mn>2</mn><mo>=</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">5-2 = 3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">3</span></span></span></span>)</li>
+<li><code>proportion_difference</code> giving the difference in vote 
+proportion between the first most voted type and the second most voted 
+type (if you have 10 models, 5 that voted for cell type A, 2 that voted 
+for cell type B and the rest all voted for other cell types, you would 
+have a <code>proportion_difference</code> of <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>−</mo><mn>2</mn><mo>=</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">5-2 = 3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:0.6444em;"></span><span class="mord">3</span></span></span></span>)</li>
 <li><code>mapqc_median</code>, <code>mapqc_q3</code>, <code>mapqc_max</code> aggregating the MapQC score</li>
 <li><code>binary_mapqc_median</code>,	<code>binary_mapqc_q3</code>,	<code>binary_mapqc_max</code> are the binarized version of the above columns (containing <code>Nan</code> if not a value)</li>
 </ul>
 <h2 id="4-mapqc-usage">4. MapQC usage </h2>
-<p>If you see too many cells marked as <em>Not sampled</em>, increase <code>n_nhoods</code>. This raises the chance that each query cell is included in at least one neighborhood. You can start from <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="monospace">(number_of_query_cells</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">÷</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">k_min)</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">×</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">5</mtext></mrow><annotation encoding="application/x-tex">\texttt{(number\_of\_query\_cells ÷ k\_min) × 5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">(number_of_query_cells&nbsp;</span><span class="mord">÷</span><span class="mord texttt">&nbsp;k_min)&nbsp;</span><span class="mord">×</span><span class="mord texttt">&nbsp;5</span></span></span></span></span> and scale upward until coverage is sufficient. The only drawback of setting this parameter too high is a longer computing time. However, the calculation of the MapQC score is usually orders of magnitude smaller than that of scANVI so it is better to set it too high than too low.</p>
+<p>If you see too many cells marked as <em>Not sampled</em>, increase <code>n_nhoods</code>. This raises the chance that each query cell is included in at least one neighborhood. You can start from <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="monospace">(number_of_query_cells</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">÷</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">k_min)</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">×</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">5</mtext></mrow><annotation encoding="application/x-tex">\texttt{(number\_of\_query\_cells ÷ k\_min) × 5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.9167em;vertical-align:-0.2222em;"></span><span class="mord text"><span class="mord texttt">(number_of_query_cells&nbsp;</span><span class="mord">÷</span><span class="mord texttt">&nbsp;k_min)&nbsp;</span><span class="mord">×</span><span class="mord texttt">&nbsp;5</span></span></span></span></span>
+ and scale upward until coverage is sufficient. The only drawback of 
+setting this parameter too high is a longer computing time. However, the
+ calculation of the MapQC score is usually orders of magnitude smaller 
+than that of scANVI so it is better to set it too high than too low.</p>
 <p>If many cells are <em>Filtered out</em>, you can try raising <code>k_max</code> to allow neighborhoods to expand further, but keep it below <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext>&nbsp;</mtext><mtext mathvariant="monospace">10×</mtext><mtext>&nbsp;</mtext><mtext mathvariant="monospace">k_min</mtext></mrow><annotation encoding="application/x-tex">\texttt{~10× k\_min}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.7063em;vertical-align:-0.0951em;"></span><span class="mord text"><span class="mord texttt nobreak">&nbsp;</span><span class="mord texttt">10</span><span class="mord">×</span><span class="mord texttt">&nbsp;k_min</span></span></span></span></span> to avoid mixing in a single neighbourhood different cell types.</p>
-<p>To get more hindsight on the reasons why cells were not included in the calculation of the MapQC score, you can take a look at the <code>logs/mapqc_logfile_...</code>. It mainly contains one table giving the reason why each of the neighbourhood was filtered out or not, another with the sample distances to reference and the last one being the <code>.obs</code> DataFrame of the AnnData after training of the model and thus with the embedding of the cells in the latent space.</p>
+<p>To get more hindsight on the reasons why cells were not included in 
+the calculation of the MapQC score, you can take a look at the <code>logs/mapqc_logfile_...</code>.
+ It mainly contains one table giving the reason why each of the 
+neighbourhood was filtered out or not, another with the sample distances
+ to reference and the last one being the <code>.obs</code> DataFrame of the AnnData after training of the model and thus with the embedding of the cells in the latent space.</p>
 <p>It is also advised to read the <a href="https://mapqc.readthedocs.io/en/latest/notebooks/mapqc_detailed.html">MapQC documentation</a> which is very well done.</p>
 <h2 id="5-notes-for-future-developpers">5. Notes for future developpers </h2>
-<p>During development, I had quite a lot of issue using scanpy in a Singularity container. Especially, scanpy would start importing but never finish, running indefinitly. To solve this issue, I had to create cache directories in the <code>/tmp</code> of the Singularity container. So when importing scanpy in a file put the following code before :</p>
+<p>During development, I had quite a lot of issue using scanpy in a 
+Singularity container. Especially, scanpy would start importing but 
+never finish, running indefinitly or raise errors such as <code>RuntimeError:
+ cannot cache function '_is_constant_csr_rows': no locator available for
+ file 
+'/opt/conda/lib/python3.11/site-packages/scanpy/_utils/compute/
+is_constant.py'</code>. To solve this issue, I had to create cache directories in the <code>/tmp</code>
+ of the Singularity container (which is bound to that of the host). So, 
+when importing scanpy (or related libraries like mapqc) in a file, put 
+the following code before the <code>import</code> :</p>
 <pre data-role="codeBlock" data-info="python" class="language-python python"><code><span class="token comment"># Needed for the import of scanpy</span>
-os<span class="token punctuation">.</span>makedirs<span class="token punctuation">(</span><span class="token string">"/tmp/.cache"</span><span class="token punctuation">,</span> exist_ok<span class="token operator">=</span><span class="token boolean">True</span><span class="token punctuation">)</span>
-os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"NUMBA_CACHE_DIR"</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"/tmp/cache/numba_cache"</span>
-os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">'MPLCONFIGDIR'</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">'/tmp/cache/mplconfig_cache'</span>
-os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"PYTORCH_KERNEL_CACHE_PATH"</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"/tmp/cache/torch_cache"</span>
-os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"FONTCONFIG_FILE"</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"/tmp/cache/fontconfig_cache"</span>
-os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"XDG_CACHE_HOME"</span><span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token string">"/tmp/cache"</span>
+date_time_launch <span class="token operator">=</span> datetime<span class="token punctuation">.</span>now<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span>strftime<span class="token punctuation">(</span><span class="token string">"%d-%m-%Y_%Hh%Mmin%Ss"</span><span class="token punctuation">)</span>
+cache_dir <span class="token operator">=</span> <span class="token string">"/tmp/cache_saperlipopet_FILENAME"</span> <span class="token operator">+</span> date_time_launch
+os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"NUMBA_CACHE_DIR"</span><span class="token punctuation">]</span> <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>cache_dir<span class="token punctuation">,</span> <span class="token string">"numba_cache"</span><span class="token punctuation">)</span>
+os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">'MPLCONFIGDIR'</span><span class="token punctuation">]</span> <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>cache_dir<span class="token punctuation">,</span> <span class="token string">'mplconfig_cache'</span><span class="token punctuation">)</span>
+os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"PYTORCH_KERNEL_CACHE_PATH"</span><span class="token punctuation">]</span> <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>cache_dir<span class="token punctuation">,</span> <span class="token string">"torch_cache"</span><span class="token punctuation">)</span>
+os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"FONTCONFIG_FILE"</span><span class="token punctuation">]</span> <span class="token operator">=</span> os<span class="token punctuation">.</span>path<span class="token punctuation">.</span>join<span class="token punctuation">(</span>cache_dir<span class="token punctuation">,</span> <span class="token string">"fontconfig_cache"</span><span class="token punctuation">)</span>
+os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span><span class="token string">"XDG_CACHE_HOME"</span><span class="token punctuation">]</span> <span class="token operator">=</span> cache_dir
 <span class="token keyword keyword-for">for</span> d <span class="token keyword keyword-in">in</span> <span class="token punctuation">[</span><span class="token string">"XDG_CACHE_HOME"</span><span class="token punctuation">,</span> <span class="token string">"NUMBA_CACHE_DIR"</span><span class="token punctuation">,</span> <span class="token string">"MPLCONFIGDIR"</span><span class="token punctuation">,</span> <span class="token string">"PYTORCH_KERNEL_CACHE_PATH"</span><span class="token punctuation">,</span> <span class="token string">"FONTCONFIG_FILE"</span><span class="token punctuation">]</span><span class="token punctuation">:</span>
     os<span class="token punctuation">.</span>makedirs<span class="token punctuation">(</span>os<span class="token punctuation">.</span>environ<span class="token punctuation">[</span>d<span class="token punctuation">]</span><span class="token punctuation">,</span> exist_ok<span class="token operator">=</span><span class="token boolean">True</span><span class="token punctuation">)</span>
-</code></pre><p>I faced similar issues when running Quarto in a Singularity container, which explains the <code>03_generate_report.py</code> file.</p>
+</code></pre><p>I create a distinct cache folder for each run using <code>datetime</code> because otherwise, I ran into the same <code>RuntimeError</code>.<br>
+I faced similar issues when running Quarto in a Singularity container, which explains the <code>03_generate_report.py</code> file.</p>
 
       </div>
       
@@ -170,5 +256,4 @@ os<span class="token punctuation">.</span>environ<span class="token punctuation"
     
     
     
-  
-    </body></html>
+  </body></html>

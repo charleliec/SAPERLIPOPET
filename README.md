@@ -1,6 +1,6 @@
 <div style="display:flex;align-items:center;">
   <img src="Saperlipopet_logo.png" alt="Logo" width="500">
-  <h3 style="margin: 10px 0px 0px 50px;">Subtype Annotation with Prior Evaluation of the Reference LImits and Potential Outlier Population ExTraction</h3> 
+  <h3 style="margin: 10px 0px 0px 50px;">Subtype Annotation with Prior Evaluation of the Reference Limits and Potential Outlier Population ExTraction</h3> 
 </div>
 <br>
 
@@ -37,7 +37,7 @@ pip install pulp==2.7.0
 Then run the following :
 
 ```console
-snakemake --snakefile Snakefile --verbose --use-singularity --singularity-args="-B /mnt/DOSI:/mnt/DOSI -B $(pwd)/.cache:/home/jovyan/.cache --nv" --cores 5
+snakemake --snakefile Snakefile --verbose --use-singularity --singularity-args="-B /mnt/DOSI:/mnt/DOSI --nv" --cores 5
 ```
 
 Depending on your GPU capacity, you can adjust the number of cores. Usually, to run 4 models, it should take around 2 to 3h. Make sure that it is running on the GPU, otherwise it could take much longer (at least 10 times longer).
@@ -81,7 +81,7 @@ The `01_CONFIG.yaml` file must have the following fields :
     * **`ref_labeled_num_epochs`** : list with number of training epochs of the scANVI model on the reference (using the labels). Usually numbers between 10 and 40 give good results
     * **`query_num_epochs`** : list with number of training epochs of the scANVI model on both the reference and the query. Usually numbers between 50 and 300 give good results
     * **`prod`** : if set to True, the cartesian product of the `..._num_epochs` lists is used to create the models. If False, they all must have the same length and zip() will be used.
-=> The number of models trained is determined by the values in the lists as well as the value of `prod`. When `prod` is `True`, there will be $\texttt{len(ref\_unlabeled\_num\_epochs)} \times \texttt{len(ref\_labeled\_num\_epochs)} \times \texttt{len(query\_num\_epochs)}$ different models. Otherwise, there will only be $\texttt{len(ref\_unlabeled\_num\_epochs)} = \texttt{len(ref\_labeled\_num\_epochs)} = \texttt{len(query\_num\_epochs)}$ models.
+=> The number of models trained is determined by the values in the lists as well as the value of `prod`. When `prod` is `True`, there will be $`\texttt{len(ref\_unlabeled\_num\_epochs)} \times \texttt{len(ref\_labeled\_num\_epochs)} \times \texttt{len(query\_num\_epochs)}`$ different models. Otherwise, there will only be $`\texttt{len(ref\_unlabeled\_num\_epochs)} = \texttt{len(ref\_labeled\_num\_epochs)} = \texttt{len(query\_num\_epochs)}`$ models.
 
 
 #### 1.2.2. Data files
@@ -149,9 +149,9 @@ In the `..._all_models_predictions_and_mapQC_scores.csv` file, you will find the
 
 ## 4. MapQC usage
 
-If you see too many cells marked as *Not sampled*, increase `n_nhoods`. This raises the chance that each query cell is included in at least one neighborhood. You can start from $\texttt{(number\_of\_query\_cells ÷ k\_min) × 5}$ and scale upward until coverage is sufficient. The only drawback of setting this parameter too high is a longer computing time. However, the calculation of the MapQC score is usually orders of magnitude smaller than that of scANVI so it is better to set it too high than too low.
+If you see too many cells marked as *Not sampled*, increase `n_nhoods`. This raises the chance that each query cell is included in at least one neighborhood. You can start from $`\texttt{(number\_of\_query\_cells ÷ k\_min) × 5}`$ and scale upward until coverage is sufficient. The only drawback of setting this parameter too high is a longer computing time. However, the calculation of the MapQC score is usually orders of magnitude smaller than that of scANVI so it is better to set it too high than too low.
 
-If many cells are *Filtered out*, you can try raising `k_max` to allow neighborhoods to expand further, but keep it below $\texttt{~10× k\_min}$ to avoid mixing in a single neighbourhood different cell types.
+If many cells are *Filtered out*, you can try raising `k_max` to allow neighborhoods to expand further, but keep it below $`\texttt{~10× k\_min}`$ to avoid mixing in a single neighbourhood different cell types.
 
 To get more hindsight on the reasons why cells were not included in the calculation of the MapQC score, you can take a look at the `logs/mapqc_logfile_...`. It mainly contains one table giving the reason why each of the neighbourhood was filtered out or not, another with the sample distances to reference and the last one being the `.obs` DataFrame of the AnnData after training of the model and thus with the embedding of the cells in the latent space.
 
@@ -161,23 +161,24 @@ It is also advised to read the [MapQC documentation](https://mapqc.readthedocs.i
 
 ## 5. Notes for future developpers
 
-During development, I had quite a lot of issue using scanpy in a Singularity container. Especially, scanpy would start importing but never finish, running indefinitly. To solve this issue, I had to create cache directories in the `/tmp` of the Singularity container. So when importing scanpy in a file put the following code before :
+During development, I had quite a lot of issue using scanpy in a Singularity container. Especially, scanpy would start importing but never finish, running indefinitly or raise errors such as `RuntimeError: cannot cache function '_is_constant_csr_rows': no locator available for file '/opt/conda/lib/python3.11/site-packages/scanpy/_utils/compute/is_constant.py'`. To solve this issue, I had to create cache directories in the `/tmp` of the Singularity container (which is bound to that of the host). So, when importing scanpy (or related libraries like mapqc) in a file, put the following code before the `import` :
 
 ```python
 # Needed for the import of scanpy
-os.makedirs("/tmp/.cache", exist_ok=True)
-os.environ["NUMBA_CACHE_DIR"] = "/tmp/cache/numba_cache"
-os.environ['MPLCONFIGDIR'] = '/tmp/cache/mplconfig_cache'
-os.environ["PYTORCH_KERNEL_CACHE_PATH"] = "/tmp/cache/torch_cache"
-os.environ["FONTCONFIG_FILE"] = "/tmp/cache/fontconfig_cache"
-os.environ["XDG_CACHE_HOME"] = "/tmp/cache"
+date_time_launch = datetime.now().strftime("%d-%m-%Y_%Hh%Mmin%Ss")
+cache_dir = "/tmp/cache_saperlipopet_FILENAME" + date_time_launch
+os.environ["NUMBA_CACHE_DIR"] = os.path.join(cache_dir, "numba_cache")
+os.environ['MPLCONFIGDIR'] = os.path.join(cache_dir, 'mplconfig_cache')
+os.environ["PYTORCH_KERNEL_CACHE_PATH"] = os.path.join(cache_dir, "torch_cache")
+os.environ["FONTCONFIG_FILE"] = os.path.join(cache_dir, "fontconfig_cache")
+os.environ["XDG_CACHE_HOME"] = cache_dir
 for d in ["XDG_CACHE_HOME", "NUMBA_CACHE_DIR", "MPLCONFIGDIR", "PYTORCH_KERNEL_CACHE_PATH", "FONTCONFIG_FILE"]:
     os.makedirs(os.environ[d], exist_ok=True)
 ```
 
+I create a distinct cache folder for each run using `datetime` because otherwise, I ran into the same `RuntimeError`. 
 I faced similar issues when running Quarto in a Singularity container, which explains the `03_generate_report.py` file.
 
-Further more to start with the same Singularity environment between runs, I had to add the the `--contain` option to the command used to run the pipeline. This option creates new directory in the Singularity environment for the `/tmp` and `/home` instead of using those of the host. However, since Snakemake adds a `--home` flag, the `/home` is actually bound to the `SCRIPTS_DIR`. This was necessary for the import of *Scanpy* due to the creation of the cache directories in the `/tmp`.
 
 
 
